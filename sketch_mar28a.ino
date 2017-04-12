@@ -170,7 +170,7 @@ void AI(){
 
   if(foundRear && !foundLeftSide && !foundRight && !foundLeft && !foundRightSide){
     turnRight = false;
-    plab_Motors.turnLeft((speeD - 100), 180);
+    plab_Motors.turnLeft((speeD - 20), 180);
   }
   
   if(foundLeft && foundRight){
