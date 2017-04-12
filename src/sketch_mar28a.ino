@@ -9,7 +9,7 @@
 #define QTR_THRESHOLD  1500
 #define NUM_SENSORS 6
 unsigned int sensor_values[NUM_SENSORS];
- 
+
 ZumoReflectanceSensorArray reflectanceSensors; //(QTR_NO_EMITTER_PIN);
 
 
@@ -60,7 +60,7 @@ void setup() {
       motors.setSpeeds(-(speeD), speeD);
     else
       motors.setSpeeds(speeD, -(speeD));
-      
+
     reflectanceSensors.calibrate();
 
     // Since our counter runs to 80, the total delay will be
@@ -134,14 +134,14 @@ void AI(){
       motors.setSpeeds((searchSpeed), -(searchSpeed));
     }
     if(!turnRight){
-     motors.setSpeeds(-(searchSpeed), searchSpeed); 
+     motors.setSpeeds(-(searchSpeed), searchSpeed);
     }
     pingR(sonarL, &foundLeft);
     if(foundLeft){
       seek = false;
     }
   }
-  
+
   if(foundLeft && !foundRight){
     motors.setSpeeds(-(searchSpeed), searchSpeed);
     pingR(sonarR, &foundRight);
@@ -172,7 +172,7 @@ void AI(){
     turnRight = false;
     plab_Motors.turnLeft((speeD - 20), 180);
   }
-  
+
   if(foundLeft && foundRight){
     pingR(sonarL, &foundLeft);
     pingR(sonarR, &foundRight);
@@ -195,24 +195,4 @@ void AI(){
     seek = true;
   }
 
-  /**
-  pingLeftSide();
-  if(pingLeftSide){
-    turn 90 left
-  pingRightSide();
-  if(pingRightSide){
-    turn 90 right
-  pingbehinde();
-  if(pingLbehinde){
-    turn 180
-
-  If speed is descrsing when it should be incrinsing
-   turn motors speed down a bit
-
-  
-   **/
-
 }
-
-
-
