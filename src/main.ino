@@ -186,10 +186,9 @@ void AI() {
     turnRight = true;
     plab_Motors.turnRight(speeD, 80);
   }
-
   if(foundRear && !foundLeftSide && !foundRight && !foundLeft && !foundRightSide) {
     if(turnRight){
-     plab_Motors.turnRight((speeD), 170); 
+     plab_Motors.turnRight((speeD), 170);
     }
     else{
       plab_Motors.turnLeft((speeD), 170);
@@ -218,5 +217,4 @@ void AI() {
   if(!foundLeft && !foundRight && !detectBorder()) {
     seek = true;
   }
-
 }
