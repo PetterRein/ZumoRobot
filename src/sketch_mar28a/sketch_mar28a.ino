@@ -74,7 +74,7 @@ void setup() {
     }
     reflectanceSensors.calibrate();
     delay(2);
-  }
+    }
   }
   motors.setSpeeds(0, 0);
   btSerial.begin(9600); // Open serial communication to Bluetooth unit
@@ -206,7 +206,7 @@ void AI() {
         motors.setSpeeds(speeD, speeD);
       }
     }
-    if(foundLeft && !foundRight) {
+    if(foundLeft && !foundRight && !detectBorder()) {
       motors.setSpeeds(speeD, (speeD - 50));
       ping(sonarR, &foundRight);
       if(foundRight && !detectBorder()) {
@@ -220,3 +220,4 @@ void AI() {
   }
 
 }
+
