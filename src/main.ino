@@ -51,6 +51,7 @@ bool foundRear = false; //Bool for å vite pm vi har funnet noe på sensor bak
 bool foundLeftSide = false; //Bool for å vite om vi har funnet noe på sensor på venstre side
 bool turnRight = false; //Bestemer om vi skal søke til høyre eller ikke
 bool cali = false; //Bestemmer om vi skal kalibrere IR-sensorene
+bool start1 = false;
 
 NewPing sonarL(5, 5, 35); //Sensor fremme venstre
 NewPing sonarR(6, 6, 35); //Sensor fremme høyre
@@ -84,9 +85,14 @@ void setup() {
 // Main loop
 void loop() {
   bluetooth();
-  ping(sonarL, &foundLeft);
-  ping(sonarR, &foundRight);
-  AI();
+  if(start1){
+   ping(sonarL, &foundLeft);
+   ping(sonarR, &foundRight);
+   AI(); 
+  }
+  else if(!start1){
+    motors.setSpeeds(0,0);
+  }
 }
 
 // Bluetooth functionality
@@ -95,10 +101,17 @@ void bluetooth() {
   while (btSerial.available()) { // If input available from Bluetooth unit
     c = btSerial.read();    // Read character from from Bluetooth unit
     Serial.write(c);             // Write that character to Serial Monitor
-  };
-  while (Serial.available()) { // If input available from Serial Monitor
-    char c = Serial.read();    // Read character from from Serial Monitor
-    btSerial.write(c);
+	if(c == 'G'){
+      if(!start1){
+       start1 = true; 
+      }
+      else if(start1){
+        start1 = false;
+      }
+    }
+    else if(c == 'F'){
+      start1 = false;
+    }
   };
 }
 
@@ -131,12 +144,12 @@ bool detectBorder() {
    }
   else if((sensor_values[0] < 1000)) {
     bool border = true;
-    motors.setSpeeds((-(speeD)-100),-(speeD));
+    motors.setSpeeds(-(speeD-100),-(speeD));
     delay(25);
   }
   else if((sensor_values[4] < 1000)) {
     bool border = true;
-    motors.setSpeeds(-(speeD), -(speeD)-(100));
+    motors.setSpeeds(-(speeD), -(speeD-100));
     delay(25);
   }
   return border;
