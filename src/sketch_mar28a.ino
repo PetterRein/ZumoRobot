@@ -23,6 +23,7 @@ ZumoReflectanceSensorArray reflectanceSensors; //(QTR_NO_EMITTER_PIN)
 
 char BTName[] = "Brukernavn";
 char ATCommand[] = "AT+NAMEPLab_";
+char c = 'x';
 PLabBTSerial btSerial(txPin, rxPin);
 
 
@@ -73,8 +74,8 @@ void setup() {
     delay(2);
   }
   motors.setSpeeds(0, 0);
-  button.waitForButton();
   btSerial.begin(9600); // Open serial communication to Bluetooth unit
+  button.waitForButton();
 }
 
 // Main loop
@@ -88,14 +89,13 @@ void loop() {
 // Bluetooth functionality
 
 void bluetooth() {
-   while (btSerial.available()) { // If input available from Bluetooth unit
+  while (btSerial.available()) { // If input available from Bluetooth unit
     c = btSerial.read();    // Read character from from Bluetooth unit
     Serial.write(c);             // Write that character to Serial Monitor
   };
   while (Serial.available()) { // If input available from Serial Monitor
     char c = Serial.read();    // Read character from from Serial Monitor
-    btSerial.write(c);  
-
+    btSerial.write(c);
   };
 }
 
