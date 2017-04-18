@@ -5,12 +5,26 @@
 #include <ZumoReflectanceSensorArray.h>
 #include <NewPing.h>
 #include <PLab_ZumoMotors.h>
+#include <SoftwareSerial.h>
+#include <PLabBTSerial.h>
+
 
 #define QTR_THRESHOLD  1500
 #define NUM_SENSORS 6
 unsigned int sensor_values[NUM_SENSORS];
 
 ZumoReflectanceSensorArray reflectanceSensors; //(QTR_NO_EMITTER_PIN)
+
+// Bluetooth
+#define txPin 4  // Tx pin on Bluetooth unit
+#define rxPin 3  // Rx pin on Bluetooth unit
+#define redPin 8
+#define greenPin 9
+
+char BTName[] = "Brukernavn";
+char ATCommand[] = "AT+NAMEPLab_";
+PLabBTSerial btSerial(txPin, rxPin);
+
 
 /**
   ECHO Hvit ledning
@@ -60,13 +74,29 @@ void setup() {
   }
   motors.setSpeeds(0, 0);
   button.waitForButton();
+  btSerial.begin(9600); // Open serial communication to Bluetooth unit
 }
 
 // Main loop
 void loop() {
+  bluetooth();
   pingR(sonarL, &foundLeft);
   pingR(sonarR, &foundRight);
   AI();
+}
+
+// Bluetooth functionality
+
+void bluetooth() {
+   while (btSerial.available()) { // If input available from Bluetooth unit
+    c = btSerial.read();    // Read character from from Bluetooth unit
+    Serial.write(c);             // Write that character to Serial Monitor
+  };
+  while (Serial.available()) { // If input available from Serial Monitor
+    char c = Serial.read();    // Read character from from Serial Monitor
+    btSerial.write(c);  
+
+  };
 }
 
 void pingR(NewPing sonar, bool *found) {
