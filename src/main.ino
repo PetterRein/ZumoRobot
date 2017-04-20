@@ -8,8 +8,6 @@
 #include <SoftwareSerial.h>
 #include <PLabBTSerial.h>
 
-
-#define QTR_THRESHOLD  1500
 #define NUM_SENSORS 6
 unsigned int sensor_values[NUM_SENSORS];
 
@@ -51,7 +49,7 @@ bool foundRear = false; //Bool for å vite pm vi har funnet noe på sensor bak
 bool foundLeftSide = false; //Bool for å vite om vi har funnet noe på sensor på venstre side
 bool turnRight = false; //Bestemer om vi skal søke til høyre eller ikke
 bool cali = false; //Bestemmer om vi skal kalibrere IR-sensorene
-bool start1 = false;
+bool start1 = false; //Bool for bluetooth for å starte og stoppe roboten
 
 NewPing sonarL(5, 5, 35); //Sensor fremme venstre
 NewPing sonarR(6, 6, 35); //Sensor fremme høyre
@@ -62,10 +60,16 @@ NewPing sonarLS(A1, A1, 35); //Sensor venstre side (LeftSide)
 void setup() {
   reflectanceSensors.init();
   Serial.begin(9600);
-  button.waitForButton();
-
   // For løkken kalibrer IR sensorne
   if(cali){
+    calibration();
+  }
+  motors.setSpeeds(0, 0);
+  btSerial.begin(9600); // Open serial communication to Bluetooth unit
+  button.waitForButton();
+}
+
+void calibration(){
   for(int i = 0; i < 80; i++) {
     if ((i > 10 && i <= 30) || (i > 50 && i <= 70)) {
       motors.setSpeeds(-(speeD), speeD);
@@ -74,24 +78,19 @@ void setup() {
       motors.setSpeeds(speeD, -(speeD));
     }
     reflectanceSensors.calibrate();
-    delay(2);
+    delay(10);
   }
-  }
-  motors.setSpeeds(0, 0);
-  btSerial.begin(9600); // Open serial communication to Bluetooth unit
-  button.waitForButton();
 }
 
 // Main loop
 void loop() {
   bluetooth();
   if(start1){
-   ping(sonarL, &foundLeft);
-   ping(sonarR, &foundRight);
    AI(); 
   }
   else if(!start1){
     motors.setSpeeds(0,0);
+	seek = true;
   }
 }
 
@@ -112,6 +111,7 @@ void bluetooth() {
     else if(c == 'F'){
       start1 = false;
     }
+	/** Kan kaste string til int for å sette variabler direkte (string.toInt();)**/
   };
 }
 
@@ -145,12 +145,12 @@ bool detectBorder() {
   else if((sensor_values[0] < 1000)) {
     bool border = true;
     motors.setSpeeds(-(speeD-100),-(speeD));
-    delay(25);
+    delay(50);
   }
   else if((sensor_values[4] < 1000)) {
     bool border = true;
     motors.setSpeeds(-(speeD), -(speeD-100));
-    delay(25);
+    delay(50);
   }
   return border;
 }
@@ -159,56 +159,52 @@ bool detectBorder() {
 void AI() {
   detectBorder();
   if(seek) {
-    ping(sonarRS, &foundRightSide);
-    ping(sonarLS, &foundLeftSide);
-    ping(sonarRear, &foundRear);
     if(turnRight) {
       motors.setSpeeds((searchSpeed), -(searchSpeed));
     }
     if(!turnRight) {
      motors.setSpeeds(-(searchSpeed), searchSpeed);
     }
-    ping(sonarL, &foundLeft);
-    if(foundLeft) {
-      seek = false;
-    }
   }
   allPing();
   if(foundLeft && !foundRight && !detectBorder()) {
+    seek = false;
     motors.setSpeeds((speeD - 50), speeD);
     ping(sonarR, &foundRight);
     if(foundRight && !detectBorder()) {
       motors.setSpeeds(speeD, speeD);
     }
   }
-  allPing();
   if(!foundLeft && foundRight && !detectBorder()) {
+	seek = false;
     motors.setSpeeds(speeD, (speeD - 50));
     ping(sonarL, &foundLeft);
     if(foundRight && !detectBorder()) {
       motors.setSpeeds(speeD, speeD);
     }
   }
-  allPing();
   if(foundLeftSide && !foundRight && !foundLeft && !foundRightSide && !foundRear) {
+	/**seek = false;**/
     turnRight = false;
     plab_Motors.turnLeft(speeD, 80);
   }
 
   if(foundRightSide && !foundLeft && !foundLeftSide && !foundRear && !foundRight) {
-    turnRight = true;
+    /**seek = false;**/
+	turnRight = true;
     plab_Motors.turnRight(speeD, 80);
   }
   if(foundRear && !foundLeftSide && !foundRight && !foundLeft && !foundRightSide) {
-    if(turnRight){
+    /**seek = false;**/
+	if(turnRight){
      plab_Motors.turnRight((speeD), 170);
     }
     else{
       plab_Motors.turnLeft((speeD), 170);
     }
   }
-  allPing();
   if(foundLeft && foundRight && !detectBorder()) {
+	seek = false;
     ping(sonarL, &foundLeft);
     ping(sonarR, &foundRight);
     if(!foundLeft && foundRight) {
@@ -225,8 +221,10 @@ void AI() {
         motors.setSpeeds(speeD, speeD);
       }
     }
+	if(foundLeft && foundRight && !detectBorder()){
+	  motors.setSpeeds(speeD, speeD);
+	  }
   }
-  allPing();
   if(!foundLeft && !foundRight && !detectBorder()) {
     seek = true;
   }
