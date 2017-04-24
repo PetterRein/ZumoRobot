@@ -16,8 +16,7 @@ ZumoReflectanceSensorArray reflectanceSensors; //(QTR_NO_EMITTER_PIN)
 // Bluetooth
 #define txPin 4  // Tx pin on Bluetooth unit
 #define rxPin 3  // Rx pin on Bluetooth unit
-#define redPin 8
-#define greenPin 9
+
 
 char BTName[] = "Brukernavn";
 char ATCommand[] = "AT+NAMEPLab_";
@@ -39,7 +38,9 @@ PLab_ZumoMotors plab_Motors;
 
 int speeD = 385; //Farten som roboten bruker når den har funnet noe
 int searchSpeed = 300; //Farten som roboten bruker når den søker
-int maxLength = 30; //Setter maks lengde på hva sensorne skal finne
+int maxLength = 60; //Setter maks lengde på hva sensorne skal finne
+int speeDNear = 250;
+int cm = -1;
 
 bool seek = true; // For å besteme om vi skal søke eller ikke
 bool foundLeft = false; //Bool for å vite om vi har funnet noe på venstre fremme sensor
@@ -50,12 +51,13 @@ bool foundLeftSide = false; //Bool for å vite om vi har funnet noe på sensor p
 bool turnRight = false; //Bestemer om vi skal søke til høyre eller ikke
 bool cali = false; //Bestemmer om vi skal kalibrere IR-sensorene
 bool start1 = false; //Bool for bluetooth for å starte og stoppe roboten
+bool slowWhenNear = false;
 
-NewPing sonarL(5, 5, 35); //Sensor fremme venstre
-NewPing sonarR(6, 6, 35); //Sensor fremme høyre
-NewPing sonarRS(A4, A4, 35); //Sensor høyre side (RightSide)
-NewPing sonarRear(A5, A5, 35); //Sensor bak
-NewPing sonarLS(A1, A1, 35); //Sensor venstre side (LeftSide)
+NewPing sonarL(A1, A1, maxLength); //Sensor fremme venstre
+NewPing sonarR(A4, A4, maxLength); //Sensor fremme høyre
+NewPing sonarRS(A0, A0, maxLength); //Sensor høyre side (RightSide)
+NewPing sonarRear(A5, A5, maxLength); //Sensor bak
+NewPing sonarLS(6, 6, maxLength); //Sensor venstre side (LeftSide)
 
 void setup() {
   reflectanceSensors.init();
@@ -84,7 +86,7 @@ void calibration(){
 
 // Main loop
 void loop() {
-  bluetooth();
+ bluetooth();
   if(start1){
    AI(); 
   }
@@ -92,6 +94,7 @@ void loop() {
     motors.setSpeeds(0,0);
 	seek = true;
   }
+  /**AI();**//
 }
 
 // Bluetooth functionality
@@ -100,11 +103,11 @@ void bluetooth() {
   while (btSerial.available()) { // If input available from Bluetooth unit
     c = btSerial.read();    // Read character from from Bluetooth unit
     Serial.write(c);             // Write that character to Serial Monitor
-	if(c == 'G'){
-      if(!start1){
-       start1 = true; 
-      }
-      else if(start1){
+	  if(c == 'G'){
+       if(!start1){
+        start1 = true; 
+       }
+       else if(start1){
         start1 = false;
       }
     }
@@ -115,40 +118,41 @@ void bluetooth() {
   };
 }
 
-void ping(NewPing sonar, bool *found) {
+int ping1(NewPing sonar, bool *found) {
   float cm = sonar.convert_cm(sonar.ping());
-  if(cm > 1 && cm < 30) {
+  if(cm > 1 && cm < maxLength) {
     *found = true;
   }
   else{
     *found = false;
   }
+  return cm;
 }
 
 void allPing() {
-  ping(sonarL, &foundLeft);
-  ping(sonarR, &foundRight);
-  ping(sonarRS, &foundRightSide);
-  ping(sonarRear, &foundRear);
-  ping(sonarLS, &foundLeftSide);
+  ping1(sonarL, &foundLeft);
+  cm = ping1(sonarR, &foundRight);
+  ping1(sonarRS, &foundRightSide);
+  ping1(sonarRear, &foundRear);
+  ping1(sonarLS, &foundLeftSide);
 }
 
 // Checking for border by any of the IR sensors
 bool detectBorder() {
   bool border = false;
   reflectanceSensors.read(sensor_values); // gives raw values 0-2000 (pulse times in um)
-  if ((sensor_values[0] < 1000) && (sensor_values[4] < 1000)) {
-    bool border = true;
+  if ((sensor_values[0] < 1500) && (sensor_values[4] < 1500)) {
+    border = true;
     motors.setSpeeds(-(speeD), -(speeD));
     delay(500);
    }
-  else if((sensor_values[0] < 1000)) {
-    bool border = true;
+  else if((sensor_values[0] < 1500)) {
+    border = true;
     motors.setSpeeds(-(speeD-100),-(speeD));
     delay(50);
   }
-  else if((sensor_values[4] < 1000)) {
-    bool border = true;
+  else if((sensor_values[4] < 1500)) {
+    border = true;
     motors.setSpeeds(-(speeD), -(speeD-100));
     delay(50);
   }
@@ -170,17 +174,37 @@ void AI() {
   if(foundLeft && !foundRight && !detectBorder()) {
     seek = false;
     motors.setSpeeds((speeD - 50), speeD);
-    ping(sonarR, &foundRight);
+    cm = ping1(sonarR, &foundRight);
     if(foundRight && !detectBorder()) {
-      motors.setSpeeds(speeD, speeD);
+      if(slowWhenNear){
+        if(cm > 10){
+          motors.setSpeeds(speeD, speeD);    
+        }
+        else if(cm < 10){
+          motors.setSpeeds(speeDNear, speeDNear);
+        }
+      }
+      if(!slowWhenNear){
+        motors.setSpeeds(speeD, speeD);
+      }
     }
   }
   if(!foundLeft && foundRight && !detectBorder()) {
 	seek = false;
     motors.setSpeeds(speeD, (speeD - 50));
-    ping(sonarL, &foundLeft);
+    ping1(sonarL, &foundLeft);
     if(foundRight && !detectBorder()) {
-      motors.setSpeeds(speeD, speeD);
+      if(slowWhenNear){
+        if(cm > 10){
+          motors.setSpeeds(speeD, speeD);    
+        }
+        else if(cm < 10){
+          motors.setSpeeds(speeDNear, speeDNear);
+        }
+      }
+      if(!slowWhenNear){
+        motors.setSpeeds(speeD, speeD);
+      }
     }
   }
   if(foundLeftSide && !foundRight && !foundLeft && !foundRightSide && !foundRear) {
@@ -204,25 +228,55 @@ void AI() {
     }
   }
   if(foundLeft && foundRight && !detectBorder()) {
-	seek = false;
-    ping(sonarL, &foundLeft);
-    ping(sonarR, &foundRight);
-    if(!foundLeft && foundRight) {
+	  seek = false;
+    cm = ping1(sonarL, &foundLeft);
+    cm = ping1(sonarR, &foundRight);
+    if(!foundLeft && foundRight && !detectBorder()) {
       motors.setSpeeds((speeD-50), speeD);
-      ping(sonarL, &foundLeft);
+      cm = ping1(sonarL, &foundLeft);
       if(foundLeft && !detectBorder()) {
+        if(slowWhenNear){
+          if(cm > 10){
+            motors.setSpeeds(speeD, speeD);    
+           }
+        else if(cm < 10){
+          motors.setSpeeds(speeDNear, speeDNear);
+        }
+      }
+      if(!slowWhenNear){
         motors.setSpeeds(speeD, speeD);
       }
+      }
     }
-    if(foundLeft && !foundRight) {
+    if(foundLeft && !foundRight && !detectBorder()) {
       motors.setSpeeds(speeD, (speeD - 50));
-      ping(sonarR, &foundRight);
+      cm = ping1(sonarR, &foundRight);
       if(foundRight && !detectBorder()) {
+        if(slowWhenNear){
+          if(cm > 10){
+            motors.setSpeeds(speeD, speeD);    
+          }
+        else if(cm < 10){
+          motors.setSpeeds(speeDNear, speeDNear);
+        }
+      }
+      if(!slowWhenNear){
         motors.setSpeeds(speeD, speeD);
       }
+      }
     }
-	if(foundLeft && foundRight && !detectBorder()){
-	  motors.setSpeeds(speeD, speeD);
+	  if(foundLeft && foundRight && !detectBorder()){
+	    if(slowWhenNear){
+        if(cm > 10){
+          motors.setSpeeds(speeD, speeD);    
+        }
+        else if(cm < 10){
+          motors.setSpeeds(speeDNear, speeDNear);
+        }
+      }
+      if(!slowWhenNear){
+        motors.setSpeeds(speeD, speeD);
+      }
 	  }
   }
   if(!foundLeft && !foundRight && !detectBorder()) {
