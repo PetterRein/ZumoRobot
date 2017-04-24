@@ -20,7 +20,6 @@ ZumoReflectanceSensorArray reflectanceSensors; //(QTR_NO_EMITTER_PIN)
 
 char BTName[] = "Brukernavn";
 char ATCommand[] = "AT+NAMEPLab_";
-char c = 'x';
 PLabBTSerial btSerial(txPin, rxPin);
 
 
@@ -51,7 +50,7 @@ bool foundLeftSide = false; //Bool for å vite om vi har funnet noe på sensor p
 bool turnRight = false; //Bestemer om vi skal søke til høyre eller ikke
 bool cali = false; //Bestemmer om vi skal kalibrere IR-sensorene
 bool start1 = false; //Bool for bluetooth for å starte og stoppe roboten
-bool slowWhenNear = false;
+bool slowWhenNear = true;
 
 NewPing sonarL(A1, A1, maxLength); //Sensor fremme venstre
 NewPing sonarR(A4, A4, maxLength); //Sensor fremme høyre
@@ -86,36 +85,118 @@ void calibration(){
 
 // Main loop
 void loop() {
- bluetooth();
+  bluetooth();
   if(start1){
    AI(); 
   }
   else if(!start1){
     motors.setSpeeds(0,0);
-	seek = true;
+	  seek = true;
   }
-  /**AI();**//
+  /**AI();**/
 }
 
 // Bluetooth functionality
 
 void bluetooth() {
+  String array5 [10] = {};
+  String string = "";
+  int i = 0;
   while (btSerial.available()) { // If input available from Bluetooth unit
-    c = btSerial.read();    // Read character from from Bluetooth unit
-    Serial.write(c);             // Write that character to Serial Monitor
-	  if(c == 'G'){
-       if(!start1){
-        start1 = true; 
-       }
-       else if(start1){
-        start1 = false;
-      }
+   char c = btSerial.read();    // Read character from from Bluetooth unit
+   if(c != ' '){
+    string += c;
+    array5[i] = string;
+   }
+   else{
+    string = "";
+    i++;
+   }
+  }
+  if(array5[0].length() > 0){
+   Serial.println(array5[0]); 
+  }
+	if(array5[0] == "G"){
+    Serial.println("Heivikom inn");
+    if(!start1){
+      start1 = true; 
     }
-    else if(c == 'F'){
+    else if(start1){
       start1 = false;
     }
+ }
+ else if(array5[0] == "F"){
+  start1 = false;
+ }
+ else if(array5[0] == "speeD" || array5[0] == "speeDNear" || array5[0] == "searchSpeed" || array5[0] == "slowWhenNear" || array5[0] == "cali"){
+  int nr = 0;
+  int gange = 1;
+  for(int i = 0; i < array5[1].length(); i++){
+    if(i > 0){
+      gange = 10;
+    }
+    if(array5[1][i] == '1'){
+      nr = nr*gange;
+      nr += 1;
+    }
+    else if(array5[1][i] == '2'){
+      nr = nr*gange;
+      nr += 2;
+    }
+    else if(array5[1][i] == '3'){
+      nr = nr*gange;
+      nr += 3;
+    }
+    else if(array5[1][i] == '4'){
+      nr = nr*gange;
+      nr += 4;
+    }
+    else if(array5[1][i] == '5'){
+      nr = nr*gange;
+      nr += 5;
+    }
+    else if(array5[1][i] == '6'){
+      nr = nr*gange;
+      nr += 6;
+    }
+    else if(array5[1][i] == '7'){
+      nr = nr*gange;
+      nr += 7;
+    }
+    else if(array5[1][i] == '8'){
+      nr = nr*gange;
+      nr += 8;
+    }
+    else if(array5[1][i] == '9'){
+      nr = nr*gange;
+      nr += 9;
+    }
+    else if(array5[1][i] == '0'){
+      nr = nr*gange;
+      nr += 0;
+    }
+  }
+  if(array5[0] == "slowWhenNear"){
+    slowWhenNear = nr;
+  }
+  else if(array5[0] == "searchSpeed"){
+    searchSpeed = nr;
+  }
+  else if(array5[0] == "speeD"){
+    speeD = nr;
+  }
+  else if(array5[0] == "cali"){
+    cali = nr;
+  }
+  else if(array5[0] == "speeDNear"){
+    speeDNear = nr;
+  }
+  
+ }
+ else if(array5[0] == "Vari"){
+  btSerial.println("Test");
+ }
 	/** Kan kaste string til int for å sette variabler direkte (string.toInt();)**/
-  };
 }
 
 int ping1(NewPing sonar, bool *found) {
